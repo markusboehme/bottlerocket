@@ -25,7 +25,7 @@ members = [
     "api/prairiedog",
 
     # "api/migration/migrations/vX.Y.Z/..."
-    # (all migrations currently archived; replace this line with new ones)
+    "api/migration/migrations/v1.10.0/reboot-to-reconcile-setting",
 
     "bottlerocket-release",
 
