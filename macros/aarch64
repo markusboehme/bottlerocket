@@ -5,6 +5,8 @@
 %_cross_endian little
 
 %_cross_grub_efi_format arm64-efi
-%_cross_grub_efi_image bootaa64.efi
+%_cross_grub_efi_image grubaa64.efi
+%_cross_shim_efi_image shimaa64.efi
+%_cross_boot_efi_image bootaa64.efi
 
 %_cross_go_arch arm64

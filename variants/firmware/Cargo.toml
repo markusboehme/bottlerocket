@@ -10,3 +10,4 @@ path = "pkg.rs"
 
 [build-dependencies]
 grub = { path = "../../packages/grub" }
+shim = { path = "../../packages/shim" }

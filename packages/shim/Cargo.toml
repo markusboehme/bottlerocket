@@ -1,0 +1,18 @@
+[package]
+name = "shim"
+version = "0.1.0"
+edition = "2018"
+publish = false
+build = "build.rs"
+
+[lib]
+path = "pkg.rs"
+
+[[package.metadata.build-package.external-files]]
+url = "https://github.com/rhboot/shim/archive/15.6/shim-15.6.tar.gz"
+sha512 = "3a7baca95414cf1d08130fedf33b8ddd523d4c80abd38e69056f6f55245e4bb5e8c781df64b7e7845e4fa47311f0ef74bda232e881818c9176497c2d6d5678e9"
+
+[[package.metadata.build-package.external-files]]
+url = "https://github.com/rhboot/gnu-efi/archive/refs/heads/shim-15.6.tar.gz"
+path = "gnu-efi-shim-15.6.tar.gz"
+sha512 = "d09dbb9e461d60e23294326ed4178301a6ab5959ade912bf559dbeb050362d994c8e63c8e062c19569055a269e5dbb65f0572317da4725177e19aae82e3c6978"
