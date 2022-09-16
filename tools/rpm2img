@@ -212,6 +212,46 @@ fi
 # EFI binary at the correct path, eg /efi/boot.
 cp -pR "${FIRMWARE_DIR}/boot/efi/EFI" "${EFI_MOUNT}"
 
+# For an AWS profile, we expect a config file for the PKCS11
+# helper. Otherwise, there should be a local key and cert.
+if [ -s "${HOME}/.config/aws-kms-pkcs11/config.json" ] ; then
+  # Log all PKCS11 helper activity, to simplify debugging.
+  export AWS_KMS_PKCS11_DEBUG=1
+  PESIGN_KEY="-c code-sign-key -t code-sign-key"
+else
+  # Disable the PKCS11 helper.
+  rm /etc/pkcs11/modules/aws-kms-pkcs11.module
+
+  # Generate the PKCS12 archive for import.
+  openssl pkcs12 \
+    -export \
+    -passout pass: \
+    -inkey "${HOME}/code-sign.key" \
+    -in "${HOME}/code-sign.crt" \
+    -certfile "${HOME}/CA.crt" \
+    -out "${HOME}/code-sign.p12"
+
+  # Import certificates and private key archive.
+  PEDB="/etc/pki/pesign"
+  certutil -d "${PEDB}" -A -n CA -i "${HOME}/CA.crt" -t "CT,C,C"
+  certutil -d "${PEDB}" -A -n code-sign-key -i "${HOME}/code-sign.crt" -t ",,P"
+  pk12util -d "${PEDB}" -i "${HOME}/code-sign.p12" -W ""
+  certutil -d "${PEDB}" -L
+  PESIGN_KEY="-c code-sign-key"
+fi
+
+openssl x509 \
+  -inform PEM -in ~/CA.crt \
+  -outform DER -out ~/CA.der
+
+pushd "${EFI_MOUNT}/EFI/BOOT" >/dev/null
+for efi in *.efi ; do
+  pesign -i "${efi}" -o "${efi}.signed" -s ${PESIGN_KEY}
+  mv "${efi}.signed" "${efi}"
+  pesigcheck -i "${efi}" -n 0 -c ~/CA.der
+done
+popd >/dev/null
+
 dd if=/dev/zero of="${EFI_IMAGE}" bs=1M count="${partsize[EFI-A]}"
 mkfs.vfat -I -S 512 "${EFI_IMAGE}" $((partsize[EFI-A] * 1024))
 mmd -i "${EFI_IMAGE}" ::/EFI
@@ -224,6 +264,14 @@ mkdir -p "${ROOT_MOUNT}/boot/grub"
 
 # Now that we're done messing with /, move /boot out of it
 mv "${ROOT_MOUNT}/boot"/* "${BOOT_MOUNT}"
+
+pushd "${BOOT_MOUNT}" >/dev/null
+for efi in vmlinuz ; do
+  pesign -i "${efi}" -o "${efi}.signed" -s ${PESIGN_KEY}
+  mv "${efi}.signed" "${efi}"
+  pesigcheck -i "${efi}" -n 0 -c ~/CA.der
+done
+popd >/dev/null
 
 # Set the Bottlerocket variant, version, and build-id
 SYS_ROOT="${ARCH}-bottlerocket-linux-gnu/sys-root"
@@ -286,6 +334,7 @@ fi
 cat <<EOF > "${BOOT_MOUNT}/grub/grub.cfg"
 set default="0"
 set timeout="0"
+set check_signatures="no"
 
 menuentry "${PRETTY_NAME} ${VERSION_ID}" {
    linux (\$root)/vmlinuz \\
@@ -303,6 +352,10 @@ menuentry "${PRETTY_NAME} ${VERSION_ID}" {
    ${INITRD}
 }
 EOF
+
+gpg --import ~/config-sign.key
+gpg --card-status
+gpg --detach-sign "${BOOT_MOUNT}/grub/grub.cfg"
 
 # BOTTLEROCKET-BOOT-A
 mkdir -p "${BOOT_MOUNT}/lost+found"

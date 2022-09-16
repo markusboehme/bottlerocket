@@ -214,6 +214,11 @@ WORKDIR /root
 
 USER root
 RUN --mount=target=/host \
+    --mount=type=secret,id=code-sign.json,target=/root/.config/aws-kms-pkcs11/config.json \
+    --mount=type=secret,id=CA.crt,target=/root/CA.crt \
+    --mount=type=secret,id=code-sign.key,target=/root/code-sign.key \
+    --mount=type=secret,id=code-sign.crt,target=/root/code-sign.crt \
+    --mount=type=secret,id=config-sign.key,target=/root/config-sign.key \
     /host/tools/rpm2img \
       --firmware-dir="/host/build/firmware/${ARCH}-${VARIANT}/${VERSION_ID}-${BUILD_ID}" \
       --package-dir=/local/rpms \

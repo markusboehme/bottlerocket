@@ -84,6 +84,8 @@ impl PackageBuilder {
             .goarch();
 
         let mut args = Vec::new();
+        args.push("--network".into());
+        args.push("none".into());
         args.build_arg("PACKAGE", package);
         args.build_arg("ARCH", &arch);
         args.build_arg("GOARCH", &goarch);
@@ -137,6 +139,8 @@ impl FirmwareBuilder {
         println!("cargo:rerun-if-changed={}", firmware_script.display());
 
         let mut args = Vec::new();
+        args.push("--network".into());
+        args.push("none".into());
         args.build_arg("PACKAGES", packages.join(" "));
         args.build_arg("ARCH", &arch);
         args.build_arg("GOARCH", &goarch);
@@ -191,6 +195,8 @@ impl VariantBuilder {
         } = image_layout;
 
         let mut args = Vec::new();
+        args.push("--network".into());
+        args.push("host".into());
         args.build_arg("PACKAGES", packages.join(" "));
         args.build_arg("ARCH", &arch);
         args.build_arg("GOARCH", &goarch);
@@ -300,7 +306,6 @@ fn build(
 
     let mut build = format!(
         "build . \
-        --network none \
         --target {target} \
         --tag {tag}",
         target = target,
