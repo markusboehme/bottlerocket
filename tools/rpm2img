@@ -340,6 +340,7 @@ menuentry "${PRETTY_NAME} ${VERSION_ID}" {
    linux (\$root)/vmlinuz \\
        ${KERNEL_PARAMETERS} \\
        ${BOOTCONFIG} \\
+       earlycon \\
        root=/dev/dm-0 rootwait ro \\
        raid=noautodetect \\
        random.trust_cpu=on selinux=1 enforcing=1 \\
