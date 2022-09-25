@@ -386,6 +386,7 @@ where
                     .to_str()
                     .map(|s| !s.ends_with(MARKER_EXTENSION))
                     .unwrap_or(false))
+            || (entry.file_type().is_symlink())
     }
 
     for artifact_file in find_files(&build_dir, is_artifact) {
@@ -438,7 +439,7 @@ where
     }
 
     fn cleanup(path: &Path, top: &Path, dirs: &mut HashSet<PathBuf>) -> Result<()> {
-        if !path.exists() {
+        if !path.exists() && !path.is_symlink() {
             return Ok(());
         }
         std::fs::remove_file(&path).context(error::FileRemoveSnafu { path })?;
@@ -508,7 +509,7 @@ where
         .filter_entry(filter)
         .flat_map(|e| e.context(error::DirectoryWalkSnafu))
         .map(|e| e.into_path())
-        .filter(|e| e.is_file())
+        .filter(|e| e.is_file() || e.is_symlink())
 }
 
 /// Retrieve a BUILDSYS_* variable that we expect to be set in the environment,
