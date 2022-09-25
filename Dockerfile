@@ -172,6 +172,24 @@ RUN --mount=target=/host \
     && echo ${NOCACHE}
 
 # =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^=
+# Builds a firmware bundle.
+FROM repobuild as fwbuild
+ARG ARCH
+ARG VERSION_ID
+ARG BUILD_ID
+ARG NOCACHE
+ARG VARIANT
+ENV VARIANT=${VARIANT} VERSION_ID=${VERSION_ID} BUILD_ID=${BUILD_ID}
+WORKDIR /root
+
+USER root
+RUN --mount=target=/host \
+    /host/tools/rpm2firmware \
+      --package-dir=/local/rpms \
+      --output-dir=/local/output \
+    && echo ${NOCACHE}
+
+# =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^=
 # Builds a Bottlerocket image.
 FROM repobuild as imgbuild
 ARG ARCH
@@ -252,6 +270,11 @@ RUN --mount=target=/host \
         --toolchain-dir=/local/toolchain \
         --output-dir=/local/output \
     && echo ${NOCACHE}
+
+# =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^=
+# Copies the firmware bundle to the expected location so that buildsys can find it.
+FROM scratch AS firmware
+COPY --from=fwbuild /local/output/. /output/
 
 # =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^= =^..^=
 # Copies the build artifacts (Bottlerocket image files, migrations, and kmod kit) to their

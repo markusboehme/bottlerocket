@@ -1,0 +1,12 @@
+[package]
+name = "firmware"
+version = "0.0.0"
+edition = "2018"
+publish = false
+build = "build.rs"
+
+[lib]
+path = "pkg.rs"
+
+[build-dependencies]
+grub = { path = "../../packages/grub" }

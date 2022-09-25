@@ -1,6 +1,7 @@
 /.git
 /.gomodcache
 /build/*
+!/build/firmware/*
 !/build/rpms/*.rpm
 /build/rpms/*-debuginfo-*.rpm
 /build/rpms/*-debugsource-*.rpm

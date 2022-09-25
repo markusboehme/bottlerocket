@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+#
+# Extract firmware contents from RPMs.
+set -eu -o pipefail
+
+set -x
+
+for opt in "$@"; do
+   optarg="$(expr "${opt}" : '[^=]*=\(.*\)')"
+   case "${opt}" in
+      --package-dir=*) PACKAGE_DIR="${optarg}" ;;
+      --output-dir=*) OUTPUT_DIR="${optarg}" ;;
+   esac
+done
+
+OUTPUT_DIR="${OUTPUT_DIR}/${VERSION_ID}-${BUILD_ID}"
+mkdir -p "${OUTPUT_DIR}"
+
+ROOT_TEMP="$(mktemp -d)"
+
+# "Install" the packages.
+rpm -iv --root "${ROOT_TEMP}" "${PACKAGE_DIR}"/*.rpm
+
+# Extract GRUB, shim binaries and licenses.
+mv "${ROOT_TEMP}/boot" "${OUTPUT_DIR}"
+mv "${ROOT_TEMP}/${ARCH}-bottlerocket-linux-gnu/sys-root/usr" "${OUTPUT_DIR}"
+
+# Clean up temporary files to reduce size of layer.
+rm -rf "${ROOT_TEMP}"

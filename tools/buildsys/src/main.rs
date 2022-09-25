@@ -17,7 +17,7 @@ mod spec;
 
 use crate::gomod::GoMod;
 use crate::manifest::BundleModule;
-use builder::{PackageBuilder, VariantBuilder};
+use builder::{FirmwareBuilder, PackageBuilder, VariantBuilder};
 use cache::LookasideCache;
 use manifest::{ManifestInfo, SupportedArch};
 use project::ProjectInfo;
@@ -86,8 +86,10 @@ type Result<T> = std::result::Result<T, error::Error>;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[allow(clippy::enum_variant_names)]
 enum Command {
     BuildPackage,
+    BuildFirmware,
     BuildVariant,
 }
 
@@ -99,6 +101,7 @@ USAGE:
 
 SUBCOMMANDS:
     build-package           Build RPMs from a spec file and sources.
+    build-firmware          Build firmware from RPMs.
     build-variant           Build filesystem and disk images from RPMs."
     );
     process::exit(1)
@@ -121,6 +124,7 @@ fn run() -> Result<()> {
     let command = serde_plain::from_str::<Command>(&command_str).unwrap_or_else(|_| usage());
     match command {
         Command::BuildPackage => build_package()?,
+        Command::BuildFirmware => build_firmware()?,
         Command::BuildVariant => build_variant()?,
     }
     Ok(())
@@ -215,6 +219,27 @@ fn build_package() -> Result<()> {
     }
 
     PackageBuilder::build(&package).context(error::BuildAttemptSnafu)?;
+
+    Ok(())
+}
+
+fn build_firmware() -> Result<()> {
+    let manifest_file = "Cargo.toml";
+    println!("cargo:rerun-if-changed={}", manifest_file);
+
+    let root_dir: PathBuf = getenv("BUILDSYS_ROOT_DIR")?.into();
+    let variant = getenv("BUILDSYS_VARIANT")?;
+    let variant_manifest_path = root_dir.join("variants").join(variant).join(manifest_file);
+    let variant_manifest =
+        ManifestInfo::new(variant_manifest_path).context(error::ManifestParseSnafu)?;
+    supported_arch(&variant_manifest)?;
+
+    let manifest_dir: PathBuf = getenv("CARGO_MANIFEST_DIR")?.into();
+    let manifest =
+        ManifestInfo::new(manifest_dir.join(manifest_file)).context(error::ManifestParseSnafu)?;
+
+    let build_deps = manifest.cargo_build_dependencies();
+    FirmwareBuilder::build(&build_deps).context(error::BuildAttemptSnafu)?;
 
     Ok(())
 }

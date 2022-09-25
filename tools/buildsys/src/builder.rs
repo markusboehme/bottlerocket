@@ -70,6 +70,8 @@ lazy_static! {
 
 static DOCKER_BUILD_MAX_ATTEMPTS: NonZeroU16 = nonzero!(10u16);
 
+static FIRMWARE_SCRIPT: &str = "rpm2firmware";
+
 pub(crate) struct PackageBuilder;
 
 impl PackageBuilder {
@@ -114,6 +116,53 @@ impl PackageBuilder {
         Ok(Self)
     }
 }
+
+// =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=
+
+pub(crate) struct FirmwareBuilder;
+
+impl FirmwareBuilder {
+    /// Build a firmware bundle from the specified packages.
+    pub(crate) fn build(packages: &[String]) -> Result<Self> {
+        let output_dir: PathBuf = getenv("BUILDSYS_FIRMWARE_OUTPUT_DIR")?.into();
+
+        let variant = getenv("BUILDSYS_VARIANT")?;
+        let arch = getenv("BUILDSYS_ARCH")?;
+        let goarch = serde_plain::from_str::<SupportedArch>(&arch)
+            .context(error::UnsupportedArchSnafu { arch: &arch })?
+            .goarch();
+
+        let tools_dir: PathBuf = getenv("BUILDSYS_TOOLS_DIR")?.into();
+        let firmware_script = tools_dir.join(FIRMWARE_SCRIPT);
+        println!("cargo:rerun-if-changed={}", firmware_script.display());
+
+        let mut args = Vec::new();
+        args.build_arg("PACKAGES", packages.join(" "));
+        args.build_arg("ARCH", &arch);
+        args.build_arg("GOARCH", &goarch);
+        args.build_arg("VARIANT", &variant);
+        args.build_arg("VERSION_ID", getenv("BUILDSYS_VERSION_IMAGE")?);
+        args.build_arg("BUILD_ID", getenv("BUILDSYS_VERSION_BUILD")?);
+
+        let tag = format!(
+            "buildsys-fw-{variant}-{arch}",
+            variant = variant,
+            arch = arch
+        );
+
+        build(
+            BuildType::Firmware,
+            &variant,
+            &arch,
+            args,
+            &tag,
+            &output_dir,
+        )?;
+        Ok(Self)
+    }
+}
+
+// =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=
 
 pub(crate) struct VariantBuilder;
 
@@ -206,6 +255,7 @@ impl VariantBuilder {
 
 enum BuildType {
     Package,
+    Firmware,
     Variant,
 }
 
@@ -244,6 +294,7 @@ fn build(
 
     let target = match kind {
         BuildType::Package => "package",
+        BuildType::Firmware => "firmware",
         BuildType::Variant => "variant",
     };
 
@@ -358,6 +409,7 @@ enum Retry<'a> {
 fn create_build_dir(kind: &BuildType, name: &str, arch: &str) -> Result<PathBuf> {
     let prefix = match kind {
         BuildType::Package => "packages",
+        BuildType::Firmware => "firmware",
         BuildType::Variant => "variants",
     };
 

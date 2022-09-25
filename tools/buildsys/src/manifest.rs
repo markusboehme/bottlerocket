@@ -187,7 +187,7 @@ use error::Result;
 
 use serde::Deserialize;
 use snafu::ResultExt;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -198,6 +198,7 @@ use std::path::{Path, PathBuf};
 #[serde(rename_all = "kebab-case")]
 pub(crate) struct ManifestInfo {
     package: Package,
+    build_dependencies: Option<HashMap<String, toml::Value>>,
 }
 
 impl ManifestInfo {
@@ -261,6 +262,14 @@ impl ManifestInfo {
     /// Convenience method to return the GRUB features for this variant.
     pub(crate) fn grub_features(&self) -> Option<&Vec<GrubFeature>> {
         self.build_variant().and_then(|b| b.grub_features.as_ref())
+    }
+
+    /// Convenience method to return the cargo build dependencies for this crate.
+    pub(crate) fn cargo_build_dependencies(&self) -> Vec<String> {
+        self.build_dependencies
+            .as_ref()
+            .map(|d| d.keys().cloned().collect())
+            .unwrap_or_default()
     }
 
     /// Helper methods to navigate the series of optional struct fields.
