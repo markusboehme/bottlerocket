@@ -38,16 +38,33 @@ case "${PARTITION_PLAN}" in
     ;;
 esac
 
+# Store output artifacts in a versioned directory.
+OUTPUT_DIR="${OUTPUT_DIR}/${VERSION_ID}-${BUILD_ID}"
 mkdir -p "${OUTPUT_DIR}"
 
 FILENAME_PREFIX="${IMAGE_NAME}-${VARIANT}-${ARCH}-${VERSION_ID}-${BUILD_ID}"
+SYMLINK_PREFIX="${IMAGE_NAME}-${VARIANT}-${ARCH}"
+VERSIONED_SYMLINK_PREFIX="${IMAGE_NAME}-${VARIANT}-${ARCH}-${VERSION_ID}"
 
 OS_IMAGE_BASENAME="${FILENAME_PREFIX}"
+OS_IMAGE_SYMLINK="${SYMLINK_PREFIX}"
+OS_IMAGE_VERSIONED_SYMLINK="${VERSIONED_SYMLINK_PREFIX}"
+
 DATA_IMAGE_BASENAME="${FILENAME_PREFIX}-data"
+DATA_IMAGE_SYMLINK="${SYMLINK_PREFIX}-data"
+DATA_IMAGE_VERSIONED_SYMLINK="${VERSIONED_SYMLINK_PREFIX}-data"
 
 BOOT_IMAGE_NAME="${FILENAME_PREFIX}-boot.ext4.lz4"
+BOOT_IMAGE_SYMLINK="${SYMLINK_PREFIX}-boot.ext4.lz4"
+BOOT_IMAGE_VERSIONED_SYMLINK="${VERSIONED_SYMLINK_PREFIX}-boot.ext4.lz4"
+
 VERITY_IMAGE_NAME="${FILENAME_PREFIX}-root.verity.lz4"
+VERITY_IMAGE_SYMLINK="${SYMLINK_PREFIX}-root.verity.lz4"
+VERITY_IMAGE_VERSIONED_SYMLINK="${VERSIONED_SYMLINK_PREFIX}-root.verity.lz4"
+
 ROOT_IMAGE_NAME="${FILENAME_PREFIX}-root.ext4.lz4"
+ROOT_IMAGE_SYMLINK="${SYMLINK_PREFIX}-root.ext4.lz4"
+ROOT_IMAGE_VERSIONED_SYMLINK="${VERSIONED_SYMLINK_PREFIX}-root.ext4.lz4"
 
 OS_IMAGE="$(mktemp)"
 BOOT_IMAGE="$(mktemp)"
@@ -332,27 +349,48 @@ esac
 sgdisk -v "${OS_IMAGE}"
 [ -s "${DATA_IMAGE}" ] && sgdisk -v "${DATA_IMAGE}"
 
+symlink_image() {
+  local ext target link
+  ext="${1}"
+  target="${2}"
+  links="${@:3}"
+  ext="${ext:+.$ext}"
+  for link in ${links} ; do
+    ln -s "${target}${ext}" "${OUTPUT_DIR}/${link}${ext}"
+  done
+}
+
 if [[ ${OUTPUT_FMT} == "raw" ]]; then
   lz4 -vc "${OS_IMAGE}" >"${OUTPUT_DIR}/${OS_IMAGE_BASENAME}.img.lz4"
+  symlink_image "img.lz4" "${OS_IMAGE_BASENAME}" "${OS_IMAGE_SYMLINK}" "${OS_IMAGE_VERSIONED_SYMLINK}"
   if [ -s "${DATA_IMAGE}" ] ; then
     lz4 -vc "${DATA_IMAGE}" >"${OUTPUT_DIR}/${DATA_IMAGE_BASENAME}.img.lz4"
+    symlink_image "img.lz4" "${DATA_IMAGE_BASENAME}" "${DATA_IMAGE_SYMLINK}" "${DATA_IMAGE_VERSIONED_SYMLINK}"
   fi
 elif [[ ${OUTPUT_FMT} == "qcow2" ]]; then
   qemu-img convert -f raw -O qcow2 "${OS_IMAGE}" "${OUTPUT_DIR}/${OS_IMAGE_BASENAME}.qcow2"
+  symlink_image "qcow2" "${OS_IMAGE_BASENAME}" "${OS_IMAGE_SYMLINK}" "${OS_IMAGE_VERSIONED_SYMLINK}"
   if [ -s "${DATA_IMAGE}" ] ; then
     qemu-img convert -f raw -O qcow2 "${DATA_IMAGE}" "${OUTPUT_DIR}/${DATA_IMAGE_BASENAME}.qcow2"
+    symlink_image "qcow2" "${DATA_IMAGE_BASENAME}" "${DATA_IMAGE_SYMLINK}" "${DATA_IMAGE_VERSIONED_SYMLINK}"
   fi
 elif [[ ${OUTPUT_FMT} == "vmdk" ]]; then
   # Stream optimization is required for creating an Open Virtual Appliance (OVA)
   qemu-img convert -f raw -O vmdk -o subformat=streamOptimized "${OS_IMAGE}" "${OUTPUT_DIR}/${OS_IMAGE_BASENAME}.vmdk"
+  symlink_image "vmdk" "${OS_IMAGE_BASENAME}" "${OS_IMAGE_SYMLINK}" "${OS_IMAGE_VERSIONED_SYMLINK}"
   if [ -s "${DATA_IMAGE}" ] ; then
     qemu-img convert -f raw -O vmdk -o subformat=streamOptimized "${DATA_IMAGE}" "${OUTPUT_DIR}/${DATA_IMAGE_BASENAME}.vmdk"
+    symlink_image "vmdk" "${DATA_IMAGE_BASENAME}" "${DATA_IMAGE_SYMLINK}" "${DATA_IMAGE_VERSIONED_SYMLINK}"
   fi
 fi
 
 lz4 -9vc "${BOOT_IMAGE}" >"${OUTPUT_DIR}/${BOOT_IMAGE_NAME}"
 lz4 -9vc "${VERITY_IMAGE}" >"${OUTPUT_DIR}/${VERITY_IMAGE_NAME}"
 lz4 -9vc "${ROOT_IMAGE}" >"${OUTPUT_DIR}/${ROOT_IMAGE_NAME}"
+
+symlink_image "" "${BOOT_IMAGE_NAME}" "${BOOT_IMAGE_SYMLINK}" "${BOOT_IMAGE_VERSIONED_SYMLINK}"
+symlink_image "" "${VERITY_IMAGE_NAME}" "${VERITY_IMAGE_SYMLINK}" "${VERITY_IMAGE_VERSIONED_SYMLINK}"
+symlink_image "" "${ROOT_IMAGE_NAME}" "${ROOT_IMAGE_SYMLINK}" "${ROOT_IMAGE_VERSIONED_SYMLINK}"
 
 find "${OUTPUT_DIR}" -type f -print -exec chown 1000:1000 {} \;
 
