@@ -13,6 +13,7 @@ BUILDER_ARCH="$(uname -m)"
 for opt in "$@"; do
    optarg="$(expr "${opt}" : '[^=]*=\(.*\)')"
    case "${opt}" in
+      --firmware-dir=*) FIRMWARE_DIR="${optarg}" ;;
       --package-dir=*) PACKAGE_DIR="${optarg}" ;;
       --output-dir=*) OUTPUT_DIR="${optarg}" ;;
       --output-fmt=*) OUTPUT_FMT="${optarg}" ;;
@@ -187,6 +188,7 @@ printf "%s\n" "${INVENTORY_DATA}" > "${ROOT_MOUNT}/usr/share/bottlerocket/applic
 
 # install licenses
 install -p -m 0644 /host/{COPYRIGHT,LICENSE-APACHE,LICENSE-MIT} "${ROOT_MOUNT}"/usr/share/licenses/
+cp -pR -t "${ROOT_MOUNT}"/usr/share/licenses "${FIRMWARE_DIR}"/usr/share/licenses/{grub,shim}
 mksquashfs \
   "${ROOT_MOUNT}"/usr/share/licenses \
   "${ROOT_MOUNT}"/usr/share/bottlerocket/licenses.squashfs \
@@ -195,21 +197,20 @@ rm -rf "${ROOT_MOUNT}"/var/lib "${ROOT_MOUNT}"/usr/share/licenses/*
 
 if [[ "${ARCH}" == "x86_64" ]]; then
   # MBR and BIOS-BOOT
-  echo "(hd0) ${OS_IMAGE}" > "${ROOT_MOUNT}/boot/grub/device.map"
-  "${ROOT_MOUNT}/sbin/grub-bios-setup" \
-     --directory="${ROOT_MOUNT}/boot/grub" \
-     --device-map="${ROOT_MOUNT}/boot/grub/device.map" \
+  DEVICE_MAP="$(mktemp)"
+  echo "(hd0) ${OS_IMAGE}" > "${DEVICE_MAP}"
+  "${FIRMWARE_DIR}/usr/sbin/grub-bios-setup" \
+     --directory="${FIRMWARE_DIR}/boot/grub" \
+     --device-map="${DEVICE_MAP}" \
      --root="hd0" \
      --skip-fs-probe \
      "${OS_IMAGE}"
-
-  rm -vf "${ROOT_MOUNT}"/boot/grub/* "${ROOT_MOUNT}"/sbin/grub*
+  rm "${DEVICE_MAP}"
 fi
 
 # We also need an EFI partition, formatted FAT32 with the
-# EFI binary at the correct path, eg /efi/boot. The grub
-# package has placed the image in /boot/efi/EFI/BOOT.
-mv "${ROOT_MOUNT}/boot/efi"/* "${EFI_MOUNT}"
+# EFI binary at the correct path, eg /efi/boot.
+cp -pR "${FIRMWARE_DIR}/boot/efi/EFI" "${EFI_MOUNT}"
 
 dd if=/dev/zero of="${EFI_IMAGE}" bs=1M count="${partsize[EFI-A]}"
 mkfs.vfat -I -S 512 "${EFI_IMAGE}" $((partsize[EFI-A] * 1024))

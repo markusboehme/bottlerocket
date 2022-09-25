@@ -213,6 +213,7 @@ WORKDIR /root
 USER root
 RUN --mount=target=/host \
     /host/tools/rpm2img \
+      --firmware-dir="/host/build/firmware/${ARCH}-${VARIANT}/${VERSION_ID}-${BUILD_ID}" \
       --package-dir=/local/rpms \
       --output-dir=/local/output \
       --output-fmt="${IMAGE_FORMAT}" \

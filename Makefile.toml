@@ -620,7 +620,7 @@ ln -snf "${BUILDSYS_VERSION_FULL}" "${BUILDSYS_FIRMWARE_OUTPUT_DIR}/latest"
 ]
 
 [tasks.build-variant]
-dependencies = ["build-tools", "publish-setup"]
+dependencies = ["build-tools", "publish-setup", "build-firmware"]
 script = [
 '''
 export PATH="${BUILDSYS_TOOLS_DIR}/bin:${PATH}"

@@ -894,7 +894,6 @@ dependencies = [
  "findutils",
  "glibc",
  "grep",
- "grub",
  "host-ctr",
  "hotdog",
  "iproute",

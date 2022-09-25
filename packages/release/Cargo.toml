@@ -27,7 +27,6 @@ filesystem = { path = "../filesystem" }
 findutils = { path = "../findutils" }
 glibc = { path = "../glibc" }
 grep = { path = "../grep" }
-grub = { path = "../grub" }
 host-ctr = { path = "../host-ctr" }
 hotdog = { path = "../hotdog" }
 iproute = { path = "../iproute" }
