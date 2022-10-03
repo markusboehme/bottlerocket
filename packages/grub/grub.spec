@@ -174,7 +174,7 @@ sed -e "s,__VERSION__,%{version},g" %{S:3} > sbat.csv
 popd
 
 %install
-MODS="configfile echo ext2 gptprio linux normal part_gpt reboot sleep zstd search"
+MODS="configfile echo ext2 gptprio linux normal part_gpt reboot sleep zstd search pgp crypto gcry_sha256 gcry_sha512 gcry_dsa gcry_rsa"
 
 %if "%{_cross_arch}" == "x86_64"
 pushd bios-build
