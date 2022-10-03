@@ -609,7 +609,7 @@ docker run --rm \
 
 # Builds a package including its build-time and runtime dependency packages.
 [tasks.build-package]
-dependencies = ["check-cargo-version", "build-tools", "publish-setup", "fetch-licenses"]
+dependencies = ["check-cargo-version", "build-tools", "build-sbkeys", "publish-setup", "fetch-licenses"]
 script_runner = "bash"
 script = [
 '''
@@ -642,7 +642,7 @@ cargo build \
 ]
 
 [tasks.build-firmware]
-dependencies = ["build-tools", "publish-setup"]
+dependencies = ["build-tools", "publish-setup", "build-sbkeys"]
 script = [
 '''
 export PATH="${BUILDSYS_TOOLS_DIR}/bin:${PATH}"

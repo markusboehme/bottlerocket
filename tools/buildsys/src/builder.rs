@@ -16,7 +16,7 @@ use sha2::{Digest, Sha512};
 use snafu::{ensure, OptionExt, ResultExt};
 use std::collections::HashSet;
 use std::env;
-use std::fs::{self, File};
+use std::fs::{self, read_dir, File};
 use std::num::NonZeroU16;
 use std::path::{Path, PathBuf};
 use std::process::Output;
@@ -315,6 +315,9 @@ fn build(
     // Avoid using a cached layer from a concurrent build in another checkout.
     build.build_arg("TOKEN", token);
 
+    // Add known secrets to the build argments.
+    add_secrets(&mut build)?;
+
     let create = format!("create --name {} {} true", tag, tag).split_string();
     let cp = format!("cp {}:/output/. {}", tag, build_dir.display()).split_string();
     let rm = format!("rm --force {}", tag).split_string();
@@ -401,6 +404,22 @@ enum Retry<'a> {
         attempts: NonZeroU16,
         messages: &'a [&'static Regex],
     },
+}
+
+// =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=
+
+/// Add secrets that might be needed for builds. Since most builds won't use
+/// them, they are not automatically tracked for changes. If necessary, builds
+/// can emit the relevant cargo directives for tracking in their build script.
+fn add_secrets(args: &mut Vec<String>) -> Result<()> {
+    let sbkeys_var = "BUILDSYS_SBKEYS_PROFILE_DIR";
+    let sbkeys_dir = env::var(&sbkeys_var).context(error::EnvironmentSnafu { var: sbkeys_var })?;
+    let sbkeys = read_dir(&sbkeys_dir).context(error::DirectoryReadSnafu { path: &sbkeys_dir })?;
+    for s in sbkeys {
+        let s = s.context(error::DirectoryReadSnafu { path: &sbkeys_dir })?;
+        args.build_secret(s.file_name().to_string_lossy(), s.path());
+    }
+    Ok(())
 }
 
 // =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=   =^..^=
@@ -590,6 +609,25 @@ impl BuildArg for Vec<String> {
     {
         self.push("--build-arg".to_string());
         self.push(format!("{}={}", key.as_ref(), value.as_ref()));
+    }
+}
+
+/// Helper trait for constructing buildkit --secret arguments.
+trait BuildSecret {
+    fn build_secret<S, P>(&mut self, id: S, src: P)
+    where
+        S: AsRef<str>,
+        P: AsRef<Path>;
+}
+
+impl BuildSecret for Vec<String> {
+    fn build_secret<S, P>(&mut self, id: S, src: P)
+    where
+        S: AsRef<str>,
+        P: AsRef<Path>,
+    {
+        self.push("--secret".to_string());
+        self.push(format!("id={},src={}", id.as_ref(), src.as_ref().display()));
     }
 }
 
