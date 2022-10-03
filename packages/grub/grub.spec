@@ -195,12 +195,16 @@ popd
 pushd efi-build
 %make_install
 mkdir -p %{buildroot}%{efidir}
+export GNUPGHOME="$(mktemp -d)"
+gpg --import %{_cross_grub_signing_key}
+gpg --export > grub.pubkey
 %{buildroot}%{_cross_bindir}/grub-mkimage \
   -c %{S:2} \
   -d ./grub-core/ \
   -O "%{_cross_grub_efi_format}" \
   -o "%{buildroot}%{efidir}/%{_cross_grub_efi_image}" \
   -p "/EFI/BOOT" \
+  --pubkey grub.pubkey \
   --sbat sbat.csv \
   efi_gop ${MODS}
 popd
