@@ -136,7 +136,7 @@ RUN --mount=source=.cargo,target=/home/builder/.cargo \
 # Copies RPM packages from the previous stage to their expected location so that buildsys
 # can find them and copy them out.
 FROM scratch AS package
-COPY --from=rpmbuild /home/builder/rpmbuild/RPMS/*/*.rpm /output/
+COPY --from=rpmbuild /home/builder/rpmbuild/RPMS/*/*.rpm /home/builder/rpmbuild/SRPMS/*.rpm /output/
 
 ############################################################################################
 # Section 2: The following build stages are used to create a Bottlerocket image once all of
