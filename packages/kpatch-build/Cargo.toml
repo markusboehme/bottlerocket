@@ -1,0 +1,19 @@
+[package]
+name = "kpatch-build"
+version = "0.1.0"
+edition = "2018"
+publish = false
+build = "build.rs"
+
+[lib]
+path = "pkg.rs"
+
+[package.metadata.build-package]
+releases-url = "https://github.com/dynup/kpatch/releases"
+
+[[package.metadata.build-package.external-files]]
+url = "https://github.com/dynup/kpatch/archive/refs/tags/v0.9.8.tar.gz"
+sha512 = "ab3a771dfcde92a9eee768afcf7fddb6f1ad5ba9e8c7f44d579d258ce9b6ee1722869b1b70c4597ae951b0faf71413efa26a5b135f50308c996b284a9dcee5b7"
+
+[build-dependencies]
+glibc = { path = "../glibc" }
