@@ -1,0 +1,26 @@
+From 7408fa74f54947bb3a6e325a7edbfe5b454e9aca Mon Sep 17 00:00:00 2001
+From: Markus Boehme <markubo@amazon.com>
+Date: Fri, 24 Mar 2023 17:48:05 +0000
+Subject: [PATCH] HACK: meminfo: dump Bottlerocket version
+
+Signed-off-by: Markus Boehme <markubo@amazon.com>
+---
+ fs/proc/meminfo.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/fs/proc/meminfo.c b/fs/proc/meminfo.c
+index 6fa761c9c..9e0c01ca7 100644
+--- a/fs/proc/meminfo.c
++++ b/fs/proc/meminfo.c
+@@ -150,6 +150,8 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
+ 
+ 	arch_report_meminfo(m);
+ 
++	seq_printf(m, "Bottlerocket: 1.12.0\n");
++
+ 	return 0;
+ }
+ 
+-- 
+2.39.2
+

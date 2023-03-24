@@ -12,6 +12,7 @@ Source100: config-bottlerocket
 Source101: config-bottlerocket-aws
 Source102: config-bottlerocket-metal
 Source103: config-bottlerocket-vmware
+Source9000: 9000-meminfo-dump-bottlerocket-version.patch
 
 # Help out-of-tree module builds run `make prepare` automatically.
 Patch1001: 1001-Makefile-add-prepare-target-for-external-modules.patch
@@ -25,6 +26,7 @@ BuildRequires: elfutils-devel
 BuildRequires: hostname
 BuildRequires: kmod
 BuildRequires: openssl-devel
+BuildRequires: %{_cross_os}kpatch-build
 
 # CPU microcode updates are included as "extra firmware" so the files don't
 # need to be installed on the root filesystem. However, we want the license and
@@ -115,6 +117,10 @@ make -s\\\
 %kmake %{_cross_vendor}_defconfig
 %kmake %{?_smp_mflags} %{_cross_kimage}
 %kmake %{?_smp_mflags} modules
+
+#%{_cross_bindir}/kpatch-build --debug --sourcerpm /home/builder/rpmbuild/SRPMS/*.src.rpm --vmlinux ./vmlinux %{S:9000} || cat /home/builder/.kpatch/build.log
+%{_cross_bindir}/kpatch-build --debug --debug --skip-compiler-check --sourcedir . %{S:9000} || cat /home/builder/.kpatch/build.log
+exit 2
 
 %install
 %kmake %{?_smp_mflags} headers_install

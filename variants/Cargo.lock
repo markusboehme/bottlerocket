@@ -435,6 +435,7 @@ dependencies = [
 name = "kernel-5_15"
 version = "0.1.0"
 dependencies = [
+ "kpatch-build",
  "microcode",
 ]
 
@@ -468,6 +469,13 @@ version = "0.1.0"
 dependencies = [
  "glibc",
  "kernel-5_15",
+]
+
+[[package]]
+name = "kpatch-build"
+version = "0.1.0"
+dependencies = [
+ "glibc",
 ]
 
 [[package]]

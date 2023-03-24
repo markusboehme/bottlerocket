@@ -19,3 +19,4 @@ sha512 = "4ab89281ede2773f29e76f8c7fe50cb3b1a5b8819d8760dea2191ee6230ab32c779548
 
 [build-dependencies]
 microcode = { path = "../microcode" }
+kpatch-build = { path = "../kpatch-build" }
