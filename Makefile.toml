@@ -551,6 +551,11 @@ done'''
 script_runner = "bash"
 script = [
 '''
+# Disable execution traces again. cargo make insists on inserting 'set -x'
+# into the script when it detects it's running in a CI system, but traces
+# only make the output more confusing here.
+set +x
+
 # Collect all found problems and report in bulk; patterns become easier to see
 problems=()
 

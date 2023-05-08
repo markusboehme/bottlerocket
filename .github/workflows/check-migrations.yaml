@@ -1,0 +1,27 @@
+name: Check data store migrations for common mistakes
+
+on:
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - 'sources/migrations/**'
+      - 'sources/Cargo.lock'
+      - 'sources/Cargo.toml'
+      - 'Release.toml'
+
+jobs:
+  check-migrations:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Cargo
+        run: sudo apt-get update && sudo apt-get install -y cargo
+
+      - name: Install cargo-make
+        run: cargo install cargo-make
+
+      - name: Check migrations for common mistakes
+        run: cargo make check-migrations
