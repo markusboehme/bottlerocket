@@ -561,6 +561,14 @@ else
    FALLBACK=""
 fi
 
+# dm-mod.waitfor is not supported on Linux 5.10.x. On newer kernels, wait until
+# the devices making up the dm-verity partition are available.
+if [[ ${installed_rpms[*]} = *kernel-5.10* ]] ; then
+    DM_WAITFOR=
+else
+    DM_WAITFOR="dm-mod.waitfor=\"PARTUUID=\$boot_uuid/PARTNROFF=1,PARTUUID=\$boot_uuid/PARTNROFF=2\""
+fi
+
 cat <<EOF >> "${BOOT_MOUNT}/grub/grub.cfg"
 set default="0"
 set timeout="0"
@@ -574,6 +582,7 @@ menuentry "${PRETTY_NAME} ${VERSION_ID}" --unrestricted {
        raid=noautodetect \\
        random.trust_cpu=on \\
        selinux=1 enforcing=1 \\
+       ${DM_WAITFOR} \\
        dm-mod.create="\$dm_verity_root" \\
        -- \\
        systemd.log_target=journal-or-kmsg \\
